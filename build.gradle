@@ -2,6 +2,12 @@ plugins {
     id 'java'
     id 'org.springframework.boot' version '3.4.1'
     id 'io.spring.dependency-management' version '1.1.7'
+    id 'jacoco' // Java Code Coverage
+}
+
+jacoco {
+    toolVersion = '0.8.13'
+    reportsDirectory = layout.buildDirectory.dir('reports/jacoco') // 기본 경로 지정(default: build/reports/jacoco)
 }
 
 group = 'com.sparta'
@@ -10,6 +16,54 @@ version = '0.0.1-SNAPSHOT'
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+// 커버리지 기준 설정
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            enabled = true
+            element = 'CLASS'
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.5
+            }
+
+            excludes = [
+                    '*.*Application'
+            ]
+        }
+    }
+}
+
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = false
+        csv.required = false
+        html.outputLocation = layout.buildDirectory.dir('jacocoHtml') // 커버리지 파일 경로 지정
+    }
+
+    //커버리지 기준 적용
+    finalizedBy(jacocoTestCoverageVerification)
+
+    // 보고서에서 제외할 파일 명시
+    afterEvaluate {
+        classDirectories.setFrom(
+                files(classDirectories.files.collect {
+                    fileTree(dir: it, excludes: [
+                            "**/*Application*",
+                    ])
+                })
+        )
     }
 }
 
